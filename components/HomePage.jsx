@@ -19,42 +19,32 @@ function getLocalTaskItems() {
 
 export default function HomePage() {
   const [isLight, setIsLight] = useState(true);
-  const [buttonClicked, setButtonClicked] = useState(true);
+  const [buttonClicked, setButtonClicked] = useState(false);
   const [tasks, setTasks] = useState([]);
   const [inputValue, setInputValue] = useState("");
-
-  // const [tasks, setTasks] = useState(getLocalTaskItems());
-
-  // function addTaskItem() {
-  //   if (!inputValue) {
-  //   } else {
-  //     setTasks([...tasks, inputValue]);
-  //     setInputValue("");
-  //   }
-  // }
-
-  // function deleteTaskItem(id) {
-  //   console.log(id);
-  //   const updatedTaskItems = tasks.filter((ele, index) => {
-  //     return index !== id;
-  //   });
-
-  //   setTasks(updatedTaskItems);
-  // }
-
-  // useEffect(() => {
-  //   localStorage.setItem("Tasks", JSON.stringify(tasks));
-  // }, [tasks]);
+  const [errorMessageVisible, setErrorMessageVisible] = useState(false);
 
   function handleDisplay() {
     setIsLight(!isLight);
   }
 
-  function handleButtonClick() {
-    setButtonClicked(!buttonClicked);
+  function handleCloseErrorDiv() {
+    setErrorMessageVisible(false);
   }
 
   function handleAddToDo() {
+    if (inputValue === "") {
+      setButtonClicked(!buttonClicked);
+      setErrorMessageVisible(true);
+
+      const timer = setTimeout(() => {
+        setErrorMessageVisible(false);
+      }, 5000);
+
+      clearTimeout(timer);
+      return;
+    }
+
     let newToDoItem = {
       inputValue: inputValue,
     };
@@ -65,11 +55,20 @@ export default function HomePage() {
     setTasks(updatedToDoArray);
     setInputValue("");
 
-    localStorage.setItem("tasks", JSON.stringify(updatedToDoArray));
+    localStorage.setItem("Tasks", JSON.stringify(updatedToDoArray));
+  }
+
+  function handleDeleteToDo(index) {
+    let reducedToDoArray = [...tasks];
+    reducedToDoArray.splice(index, 1);
+    // console.log("Task deleted", index);
+
+    localStorage.setItem("Tasks", JSON.stringify(reducedToDoArray));
+    setTasks(reducedToDoArray);
   }
 
   useEffect(() => {
-    let savedTasks = JSON.parse(localStorage.getItem("tasks"));
+    let savedTasks = JSON.parse(localStorage.getItem("Tasks"));
 
     if (savedTasks) {
       setTasks(savedTasks);
@@ -78,6 +77,7 @@ export default function HomePage() {
 
   const bgColor = isLight ? "bg-white" : "bg-slate-900";
   const Icon = isLight ? MdOutlineLightMode : IoIosMoon;
+  const taskColor = isLight ? "text-slate-800" : "text-gray-400";
 
   return (
     <div className={`h-screen ${bgColor} transition duration-500 ease-in-out`}>
@@ -97,13 +97,16 @@ export default function HomePage() {
           </h1>
         </div>
 
-        {inputValue === "" && buttonClicked && (
-          <div className="fixed bottom-0 justify-center flex gap-2 bg-red-400 p-1 rounded m-2 transition duration-300 ease-in">
+        {inputValue === "" && errorMessageVisible && (
+          <div className="fixed bottom-0 justify-center flex gap-2 bg-red-400 p-1 rounded m-2 transition duration-200 ease-in-out">
             <div className="flex items-center gap-1 justify-between ml-2">
               <CgDanger className="text-xl" />
               <p>ToDo cannot be empty</p>
             </div>
-            <IoMdClose className="text-xl mb-4" />
+            <IoMdClose
+              className="text-xl mb-4"
+              onClick={() => handleCloseErrorDiv(false)}
+            />
           </div>
         )}
 
@@ -129,7 +132,15 @@ export default function HomePage() {
           <NoTodo />
         ) : (
           tasks.map((task, index) => {
-            return <Tasks key={index} inputValue={task.inputValue} />;
+            return (
+              <Tasks
+                key={index}
+                inputValue={task.inputValue}
+                index={index}
+                handleDeleteToDo={() => handleDeleteToDo(index)}
+                taskColor={taskColor}
+              />
+            );
           })
         )}
       </div>
